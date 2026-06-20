@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>du-field — IIFE drop-in</title>
+    <!--
+      Drop-in browser build. The IIFE exposes a single global `DuField`
+      (vite lib name) and bundles everything (incl. nanostores) — no modules,
+      no bundler. Load it as a CLASSIC script so the global is attached.
+    -->
+    <script src="/dist/index.iife.js"></script>
+</head>
+
+<body>
+    <!-- The form carries a stable `name`; omit it and one is auto-generated
+         (e.g. ui-form-1) and reflected onto the attribute. -->
+    <ui-form name="signup">
+        <ui-field name="email" type="email" required></ui-field>
+        <ui-field name="age" type="int32" min="0" max="120"></ui-field>
+        <ui-field name="price" type="money" currency="USD" scale="2" min="0"></ui-field>
+        <ui-field name="weight" type="decimal" scale="3" dot-decimal label="Weight (always dot-decimal)"></ui-field>
+        <ui-field name="created_at"></ui-field>
+        <ui-field name="phone"></ui-field>
+        <ui-field name="country" use="input"></ui-field>
+        <ui-field name="tags" type="array" use="tags"></ui-field>
+        <ui-field name="subscribe" type="bool"></ui-field>
+        <!-- a dependency: only required once an email is entered -->
+        <ui-field name="confirm_email" type="email" required-if="email != ''"></ui-field>
+    </ui-form>
+
+    <h3>Combined canonical record</h3>
+    <pre id="out">— enter something —</pre>
+
+    <script>
+        // The IIFE does NOT auto-register the elements. Call start() once to
+        // assemble a default runtime and define <ui-field> + <ui-form>.
+        DuField.start();
+
+        // One listener routes by which form changed (detail.name === the
+        // form's stable identity). detail.value is the combined canonical
+        // record, or undefined while the form is invalid.
+        document.addEventListener('du-form-change', (e) => {
+            const { name, valid, value } = e.detail;
+            document.getElementById('out').textContent =
+                `form: ${name}  valid: ${valid}\n\n` +
+                JSON.stringify(value ?? null, null, 2);
+        });
+
+        // You can also reach a specific form by its name and read it directly:
+        // const form = document.querySelector('ui-form[name="signup"]');
+        // console.log(form.formName, form.valid, form.value);
+    </script>
+</body>
+
+</html>

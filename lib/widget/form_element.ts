@@ -16,6 +16,13 @@
  *
  * Conditions are the kid-simple expression language in ./app/expression.
  *
+ * The form MAY carry a stable `name` to give it an identity of its own —
+ * addressable via `document.querySelector('ui-form[name="…"]')`, readable as
+ * `.formName`, and stamped into every `du-form-change` event so one listener
+ * can route by which form changed. The name is adapter-level identity only: it
+ * does NOT namespace or alter the combined canonical record (members stay keyed
+ * by their own `name`), consistent with the aggregate contract (RFC §3.9).
+ *
  * The form exposes `.value` (combined canonical record, or undefined when
  * invalid) and `.valid`, and emits `du-form-change` on every update.
  */
@@ -73,14 +80,33 @@ function compileDependencies(elements: FieldEl[]): Dependency[] {
   return deps;
 }
 
+/** Monotonic counter backing auto-generated form names (stable per instance). */
+let formSeq = 0;
+
 export function defineUiForm(runtime: FormRuntime, tag = 'ui-form'): void {
   if (customElements.get(tag)) return;
 
   class UiForm extends HTMLElement {
     private agg?: AggregateRuntime;
     private signature = '';
+    private name?: string;
+
+    /**
+     * Stable form identity: the author-supplied `name` attribute when present,
+     * otherwise an auto-generated `<tag>-<n>` reflected back onto the attribute
+     * so the form stays addressable via `querySelector` either way. Resolved
+     * once on connect and unchanged for the element's lifetime.
+     */
+    get formName(): string {
+      if (this.name) return this.name;
+      const explicit = this.getAttribute('name');
+      this.name = explicit && explicit.length > 0 ? explicit : `${tag}-${++formSeq}`;
+      if (!explicit) this.setAttribute('name', this.name);
+      return this.name;
+    }
 
     connectedCallback(): void {
+      this.formName; // resolve identity now (reflects an auto-generated name).
       this.addEventListener('du-change', this.onChange);
       // Children upgrade asynchronously; (re)build on the next microtask.
       queueMicrotask(() => {
@@ -156,7 +182,7 @@ export function defineUiForm(runtime: FormRuntime, tag = 'ui-form'): void {
       this.dispatchEvent(
         new CustomEvent('du-form-change', {
           bubbles: true,
-          detail: { valid: agg.valid, value: agg.canonical(ctx) },
+          detail: { name: this.formName, valid: agg.valid, value: agg.canonical(ctx) },
         }),
       );
     }

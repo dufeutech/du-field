@@ -66,10 +66,16 @@ function constraintErrors(
 ): Issue[] {
   const errors: Issue[] = [];
 
-  // choices membership (RFC §2.9) — compare the entered raw against the
-  // declared choice values (which are author-declared raw strings).
+  // choices membership (RFC §2.9) — compare against the declared choice values
+  // (author-declared raw strings). For a collection-valued field (`multiple`)
+  // EVERY selected item must be an allowed choice; otherwise the entered raw must
+  // equal one allowed value.
   if (constraints.choices && constraints.choices.length > 0) {
-    const allowed = constraints.choices.some((c) => c.value === raw);
+    const allowedValues = new Set(constraints.choices.map((c) => c.value));
+    const allowed =
+      constraints.multiple && Array.isArray(value)
+        ? (value as unknown[]).every((item) => allowedValues.has(String(item)))
+        : allowedValues.has(raw);
     if (!allowed) errors.push(issue('choice'));
   }
 

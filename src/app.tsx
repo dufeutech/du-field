@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
-import { du, buildKey } from '../lib';
+import { du, buildKey, registerWariaWidgets } from '../lib';
 import type { DuFieldHandle, DuFormHandle } from '../lib';
+// Dev playground only: load the external component library and initialize its
+// custom elements so the `<w-switch>`-backed widget can upgrade. Aliased to the
+// sibling repo's source in vite.config.ts; never imported by the library build.
+import { App as Waria } from '@dufeut/waria';
 
 // The facade IS the entry point: one call wires a runtime with the nanostores
 // state adapter as the default and registers <ui-field> + <ui-form>.
 du.define();
+
+// Opt-in: register the waria-backed widget set (e.g. use="w-switch") and define
+// the external library's custom elements. The built-in widgets are untouched.
+registerWariaWidgets(du.registry);
+Waria.init();
 
 /* ================================================================== *
  * 1. Headless facade — du.form(...) with NO boilerplate.
@@ -117,6 +126,17 @@ const SHOWCASE = `
   <ui-field name="subscribe" type="bool"></ui-field>
 `;
 
+// Every waria-backed input type, selected per field via its `w-*` use key.
+const WARIA = `
+  <ui-field name="active" type="bool" use="w-switch" label="Active (w-switch)"></ui-field>
+  <ui-field name="plan" type="string" use="w-choice" choices="free,pro,team" required label="Plan (w-choice radio)"></ui-field>
+  <ui-field name="perms" type="array" use="w-choice" multiple choices="read,write,admin" label="Permissions (w-choice checkbox)"></ui-field>
+  <ui-field name="view_mode" type="string" use="w-toggles" choices="list,grid,table" label="View (w-toggles)"></ui-field>
+  <ui-field name="region" type="string" use="w-select" choices="US,CA,MX" required label="Region (w-select)"></ui-field>
+  <ui-field name="volume" type="int32" use="w-range" min="0" max="100" step="5" label="Volume (w-range)"></ui-field>
+  <ui-field name="quantity" type="int32" use="w-spinbutton" min="0" max="20" step="1" label="Quantity (w-spinbutton)"></ui-field>
+`;
+
 const FORM = `
   <ui-field name="start" type="date" label="Start date"></ui-field>
   <ui-field name="end" type="date" label="End date"
@@ -129,8 +149,10 @@ const FORM = `
 
 export function App() {
   const showcaseRef = useRef<HTMLDivElement>(null);
+  const wariaRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const [showcase, setShowcase] = useState<Record<string, unknown>>({});
+  const [waria, setWaria] = useState<Record<string, unknown>>({});
   const [form, setForm] = useState<{ valid: boolean; value: unknown }>({
     valid: false,
     value: undefined,
@@ -146,6 +168,22 @@ export function App() {
         data[el.getAttribute('name') ?? ''] = (el as unknown as { value: unknown }).value;
       });
       setShowcase(data);
+    };
+    host.addEventListener('du-change', collect);
+    collect();
+    return () => host.removeEventListener('du-change', collect);
+  }, []);
+
+  useEffect(() => {
+    const host = wariaRef.current;
+    if (!host) return;
+    host.innerHTML = WARIA;
+    const collect = (): void => {
+      const data: Record<string, unknown> = {};
+      host.querySelectorAll('ui-field').forEach((el) => {
+        data[el.getAttribute('name') ?? ''] = (el as unknown as { value: unknown }).value;
+      });
+      setWaria(data);
     };
     host.addEventListener('du-change', collect);
     collect();
@@ -180,6 +218,14 @@ export function App() {
       <p>The same singleton runtime, driven by markup (registered via <code>du.define()</code>).</p>
       <div ref={showcaseRef} class="fields" />
       <pre>{JSON.stringify(showcase, null, 2)}</pre>
+
+      <h2>Waria widgets — <code>use="w-*"</code></h2>
+      <p>
+        Every value-producing waria form component, opt-in per field. Same runtime, same
+        canonical output — only the presentational widget differs.
+      </p>
+      <div ref={wariaRef} class="fields" />
+      <pre>{JSON.stringify(waria, null, 2)}</pre>
 
       <h2>Virtual-form with dependencies</h2>
       <p>

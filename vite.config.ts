@@ -6,9 +6,25 @@ import preact from '@preact/preset-vite'
 // Preact is only used for the local dev playground (`npm run dev`) and is NOT part
 // of the published library.
 // https://vite.dev/config/
+// The waria component library lives in a sibling repo and is not published to
+// this project's node_modules. For the dev playground only, alias its package
+// name to its source entry so `import { App } from '@dufeut/waria'` resolves.
+// This affects `npm run dev` only — the library build (lib/index.ts) imports no
+// waria code, so the published artifact stays dependency-free.
+const wariaSrc = resolve(import.meta.dirname, '../waria/src/index.ts')
+
 export default defineConfig(({ command }) => ({
   // Preact powers the dev playground only; the library build stays vanilla.
   plugins: command === 'serve' ? [preact()] : [],
+  // Harmless during the library build (lib/index.ts imports no waria); only the
+  // dev playground actually resolves this specifier.
+  resolve: {
+    alias: { '@dufeut/waria': wariaSrc },
+  },
+  server: {
+    // Allow Vite to read the sibling waria source during dev.
+    fs: { allow: [resolve(import.meta.dirname, '..')] },
+  },
   build: {
     lib: {
       entry: resolve(import.meta.dirname, 'lib/index.ts'),

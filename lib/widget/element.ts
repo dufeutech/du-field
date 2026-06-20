@@ -34,11 +34,13 @@ export interface ElementRuntime {
 
 const BOOL_ATTRS = [
   'required', 'disabled', 'readonly', 'hidden', 'emit-null', 'dot-decimal',
+  'multiple', 'unique',
 ];
 
 const OBSERVED = [
   'name', 'type', 'use', 'id', 'label', 'help',
   'min', 'max', 'step', 'scale', 'currency', 'match', 'default', 'choices', 'locale',
+  'min-items', 'max-items',
   ...BOOL_ATTRS,
 ];
 
@@ -146,6 +148,8 @@ export function defineUiField(
         hidden: this.hasAttribute('hidden'),
         emitNull: this.hasAttribute('emit-null'),
         dotDecimal: this.hasAttribute('dot-decimal'),
+        multiple: this.hasAttribute('multiple'),
+        unique: this.hasAttribute('unique'),
         min: attr('min'),
         max: attr('max'),
         step: attr('step'),
@@ -154,6 +158,8 @@ export function defineUiField(
         match: attr('match'),
         default: attr('default'),
         choices: parseChoices(this.getAttribute('choices')),
+        minItems: num('min-items'),
+        maxItems: num('max-items'),
       };
     }
 

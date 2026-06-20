@@ -141,6 +141,20 @@ export { inferType, inferUse, humanize, inferLabelKey } from './app/inference';
 export { defaultWidgets } from './widget/widgets';
 export { defineUiField } from './widget/element';
 export { defineUiForm } from './widget/form_element';
+// Optional, opt-in: widgets backed by the external component library. Imports no
+// external code; the library is a runtime peer loaded + initialized by the page.
+export {
+  wariaWidgets,
+  registerWariaWidgets,
+  defineWariaWidget,
+  wariaSwitch,
+  wariaChoice,
+  wariaToggles,
+  wariaSelect,
+  wariaRange,
+  wariaSpinbutton,
+} from './widget/waria';
+export type { WariaWidgetSpec } from './widget/waria';
 export { parseCondition } from './app/expression';
 export { requiredIf, visibleIf, hiddenIf, validIf } from './app/dependency';
 export { primitiveTypes } from './core/types/primitives';
